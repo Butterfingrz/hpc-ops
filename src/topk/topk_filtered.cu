@@ -1,8 +1,5 @@
 // Copyright (C) 2026 Tencent.
 
-#ifndef SRC_TOPK_TOPK_FILTERED_IMPL_CUH_
-#define SRC_TOPK_TOPK_FILTERED_IMPL_CUH_
-
 #include <cooperative_groups.h>
 #include <cuda.h>
 #include <cuda_fp16.h>
@@ -1046,7 +1043,7 @@ __device__ __noinline__ void refine_rounds(RowSmem<kTopK, kSampled, kBlockThread
     uint32_t next_mask = is_last ? 0 : kFineMasks[round + 1];
     // Select the ping-pong spill slices with ternaries rather than a local
     // pointer array: an array captured by the lambda below would be forced to
-    // the stack and spill (sm90 builds gate on -warn-spills).
+    // the stack and spill.
     int32_t* cur_buf = r ? buf1 : buf0;
     int32_t* next_buf = r ? buf0 : buf1;
 
@@ -1793,7 +1790,7 @@ __global__ void __launch_bounds__(THREADS, MIN_BLOCKS)
   const int64_t num_tasks = static_cast<int64_t>(num_valid) * kSplits;
 
   // Region bases, derived once. Keeping these as three scalars rather than a
-  // scratch-layout object keeps the split kernel off the sm90 spill gate.
+  // scratch-layout object avoids local-memory spills in the split kernel.
   int32_t* const ws_counts = split_buffer;
   int32_t* const ws_hists = ws_counts + static_cast<size_t>(m_rows) * kSplits;
   int32_t* const ws_cands = ws_hists + static_cast<size_t>(m_rows) * kSplits * RADIX;
@@ -3018,5 +3015,3 @@ size_t topk_filtered_peak_workspace_bytes(int max_kv_len) {
 
 }  // namespace topk
 }  // namespace hpc
-
-#endif  // SRC_TOPK_TOPK_FILTERED_IMPL_CUH_
